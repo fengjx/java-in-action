@@ -9,18 +9,16 @@ import javax.annotation.Resource;
  * @author fengjianxin
  */
 @Component
-public class RedisLock implements Lock<String> {
+public class RedisLock {
 
     @Resource
     private StringRedisTemplate redis;
 
 
-    @Override
     public boolean tryLock(String lock, long timeout) {
         return false;
     }
 
-    @Override
     public void releaseLock(String lock) {
 
     }

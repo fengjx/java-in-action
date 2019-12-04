@@ -11,7 +11,7 @@ import java.util.concurrent.TimeUnit;
  * @author fengjianxin
  */
 @Component
-public class ZkLock implements Lock<InterProcessMutex> {
+public class ZkLock {
 
     @Resource
     private CuratorFramework client;
@@ -25,12 +25,18 @@ public class ZkLock implements Lock<InterProcessMutex> {
         return new InterProcessMutex(client, BASE_PATH + lockPath);
     }
 
-    @Override
+    /**
+     *
+     * @param lock 锁标识
+     * @param timeout 超时时间
+     */
     public boolean tryLock(InterProcessMutex lock, long timeout) throws Exception {
         return lock.acquire(timeout, TimeUnit.MILLISECONDS);
     }
 
-    @Override
+    /**
+     * 释放锁
+     */
     public void releaseLock(InterProcessMutex lock) throws Exception {
         lock.release();
     }
