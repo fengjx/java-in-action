@@ -13,10 +13,15 @@ import java.util.concurrent.TimeUnit;
 @SpringBootTest
 class DistributedLockApplicationTests {
 
+
+    private static final String LOCK_KEY = "test_lock";
+
     @Resource
     private ThreadPoolTaskExecutor executor;
     @Resource
     private ZkLock zkLock;
+    @Resource
+    private DbLock dbLock;
 
     @Test
     void contextLoads() {
@@ -28,7 +33,7 @@ class DistributedLockApplicationTests {
             for (int i = 0; i < 50; i++) {
                 int finalI = i;
                 executor.submit(() -> {
-                    InterProcessMutex mutex = zkLock.createInterProcessMutex("test_lock");
+                    InterProcessMutex mutex = zkLock.createInterProcessMutex(LOCK_KEY);
                     if (zkLock.tryLock(mutex, 10)) {
                         try {
                             log.info("do task: {}", finalI);
@@ -49,5 +54,38 @@ class DistributedLockApplicationTests {
         }
     }
 
+    @Test
+    public void testDbLock() throws Exception {
+        try {
+            for (int i = 0; i < 50; i++) {
+                int finalI = i;
+                executor.submit(() -> {
+                    int version = dbLock.tryLock(LOCK_KEY, 1000);
+                    if (version > DbLock.FAIL_VERSION) {
+                        try {
+                            log.info("do task: {}", finalI);
+                            TimeUnit.MILLISECONDS.sleep(10);
+                        } finally {
+                            dbLock.releaseLock(LOCK_KEY, version);
+                        }
+                    } else {
+                        log.info("can't get lock: {}", finalI);
+                    }
+                    return finalI;
+                });
+            }
+        } finally {
+            TimeUnit.SECONDS.sleep(10);
+            executor.shutdown();
+            log.info("=================finally==================");
+        }
+    }
+
+    @Test
+    public void testDbLock2() throws Exception {
+        int version = dbLock.tryLock(LOCK_KEY, 10000);
+        int version2 = dbLock.tryLock(LOCK_KEY, 10000);
+        dbLock.releaseLock(LOCK_KEY, version);
+    }
 
 }

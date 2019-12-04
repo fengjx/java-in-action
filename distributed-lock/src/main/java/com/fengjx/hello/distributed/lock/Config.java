@@ -30,9 +30,9 @@ public class Config {
     @Bean
     public ThreadPoolTaskExecutor threadPoolTaskExecutor() {
         ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
-        executor.setCorePoolSize(20);
-        executor.setMaxPoolSize(200);
-        executor.setQueueCapacity(2000);
+        executor.setCorePoolSize(10);
+        executor.setMaxPoolSize(20);
+        executor.setQueueCapacity(50);
         executor.setDaemon(false);
         executor.setKeepAliveSeconds(3);
         executor.setRejectedExecutionHandler(new ThreadPoolExecutor.CallerRunsPolicy());
