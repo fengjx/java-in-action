@@ -5,6 +5,7 @@ import org.apache.curator.framework.recipes.locks.InterProcessMutex;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
+import org.springframework.util.StringUtils;
 
 import javax.annotation.Resource;
 import java.util.concurrent.TimeUnit;
@@ -22,6 +23,8 @@ class DistributedLockApplicationTests {
     private ZkLock zkLock;
     @Resource
     private DbLock dbLock;
+    @Resource
+    private RedisLock redisLock;
 
     @Test
     void contextLoads() {
@@ -86,6 +89,41 @@ class DistributedLockApplicationTests {
         int version = dbLock.tryLock(LOCK_KEY, 10000);
         int version2 = dbLock.tryLock(LOCK_KEY, 10000);
         dbLock.releaseLock(LOCK_KEY, version);
+    }
+
+
+    @Test
+    public void testRedisLock() {
+        String lock = redisLock.tryLock("test_redis_lock", 60000);
+        log.info("lock: {}", lock);
+        redisLock.releaseLock("test_redis_lock", lock);
+    }
+
+    @Test
+    public void testRedisLock2() throws Exception {
+        try {
+            for (int i = 0; i < 1000; i++) {
+                int finalI = i;
+                executor.submit(() -> {
+                    String version = redisLock.tryLock(LOCK_KEY, 1000);
+                    if (!StringUtils.isEmpty(version)) {
+                        try {
+                            log.info("do task: {}", finalI);
+                            TimeUnit.MILLISECONDS.sleep(1);
+                        } finally {
+                            redisLock.releaseLock(LOCK_KEY, version);
+                        }
+                    } else {
+                        log.info("can't get lock: {}", finalI);
+                    }
+                    return finalI;
+                });
+            }
+        } finally {
+            TimeUnit.SECONDS.sleep(10);
+            executor.shutdown();
+            log.info("=================finally==================");
+        }
     }
 
 }
